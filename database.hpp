@@ -28,7 +28,6 @@ public:
 
 private:
     SQLite::Database db_;
-    bool initialized_;
 };
 
 #endif
