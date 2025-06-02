@@ -18,7 +18,7 @@ struct PwdEntry
 class PasswordDB
 {
 public:
-    PasswordDB(std::string filepath);
+    PasswordDB(std::string filepath, const std::string& masterPassword);
 
     bool addPassword(const PwdEntry &entry);
     bool updatePassword(const PwdEntry &entry);
@@ -26,8 +26,15 @@ public:
     std::vector<PwdEntry> getAllPasswords();
     PwdEntry getPassword(int id);
 
+    bool isFirstRun();
+    bool setMasterPasswordHash(const std::string& hash);
+    bool checkMasterPasswordHash(const std::string& hash);
+
 private:
     SQLite::Database db_;
+    std::string key_;
+    std::string encrypt(const std::string& plaintext);
+    std::string decrypt(const std::string& ciphertext);
 };
 
 #endif
