@@ -1,49 +1,62 @@
-# Passwort-Manager (C++ mit wxWidgets)
+# Password Manager
 
-## 📜 **Überblick**
+## Project Description
 
-Ein sicherer Passwort-Manager, der Passwörter mit AES-256-Verschlüsselung speichert. Er bietet eine einfache Benutzeroberfläche, um Passwörter zu speichern, zu verwalten und sicher abzurufen. Zusätzlich unterstützt er die Passwort-Generierung und das Kopieren von Passwörtern in die Zwischenablage.
+A secure password manager in C++ with a GUI (wxWidgets) that stores passwords encrypted in an SQLite database.  
+Features:
+- Master password protection
+- AES-256 encryption (OpenSSL)
+- Store, view, edit, and delete passwords
 
-## ⚙️ **Funktionen**
+---
 
-### 1. **Master-Passwort-Schutz**
+## Build Instructions
 
-Der Passwort-Manager wird mit einem Master-Passwort entsperrt. Dieses wird verwendet, um alle gespeicherten Passwörter zu verschlüsseln und zu entschlüsseln.
+### Requirements
 
-### 2. **AES-256-Verschlüsselung**
+- CMake ≥ 3.18
+- C++20 compatible compiler
+- Dependencies:
+  - wxWidgets
+  - SQLiteCpp
+  - OpenSSL
+  - Catch2 (for tests only)
 
-Alle gespeicherten Passwörter werden mit AES-256 verschlüsselt, um maximale Sicherheit zu gewährleisten. Die Verschlüsselung verwendet Salt und Key-Derivation (PBKDF2), um die Sicherheit des Master-Passworts zu erhöhen.
+### Build
 
-### 3. **Passwort-Generierung**
+```sh
+git clone <repo-url>
+mkdir build && cd build
+cmake ..
+make -j8
+```
 
-Es kann ein zufälliges Passwort mit einer benutzerdefinierten Länge und den gewünschten Zeichentypen (Buchstaben, Zahlen, Sonderzeichen) generiert werden.
+### Run
 
-### 4. **Passwort-Management**
+```sh
+cd build
+./passwordManager
+```
 
-- **Speichern**: Passwörter werden mit einem Titel, Benutzername, URL und Anmerkungen gespeichert.
-- **Verwalten**: Passwörter können angezeigt, bearbeitet und gelöscht werden.
-- **Kopieren**: Kopiere ein Passwort mit einem Klick in die Zwischenablage.
+### Run Tests
 
-### 5. **SQLite-Datenbank**
+```sh
+./pwManagerTest
+```
 
-Passwörter werden in einer verschlüsselten SQLite-Datenbank gespeichert. So können die Daten sicher verwaltet und bei Bedarf abgerufen werden.
+---
 
-### 6. **Benutzeroberfläche (GUI)**
+## User Manual
 
-Die Benutzeroberfläche wird mit **wxWidgets** erstellt und bietet:
+1. On first start, choose and remember a master password!
+2. Passwords can be added, viewed, edited, and deleted via the GUI.
+3. All passwords are stored encrypted.
+4. On every next start, you must enter the master password to access your data.
 
-- Eine einfache und klare Liste aller gespeicherten Passwörter.
-- Buttons für das Hinzufügen, Bearbeiten und Löschen von Passwörtern.
-- Eine Suchfunktion zur schnellen Suche nach Passwörtern.
 
-### 7. **Datenexport und -import**
 
-Die Passwörter können in einem verschlüsselten Format exportiert und bei Bedarf wieder importiert werden.
+---
 
-## 🛠️ **Technologien**
+## License
 
-- **C++** – Programmiersprache
-- **wxWidgets** – GUI-Bibliothek
-- **SQLite3** – Datenbank zur Speicherung der Passwörter
-- **Crypto++ oder OpenSSL** – AES-Verschlüsselung
-- **CMake** – Build-System
+This project is licensed under the MIT License. See [LICENSE](LICENSE).
