@@ -48,10 +48,16 @@ cd build
 
 ## User Manual
 
-1. On first start, choose and remember a master password!
-2. Passwords can be added, viewed, edited, and deleted via the GUI.
-3. All passwords are stored encrypted.
+1. On first start, choose and remember a master password!  
+![Start screen](img/start.png)
+
+2. Passwords can be added, viewed, edited, and deleted via the GUI.  
+![Main page](img/mainpage.png)
+
+3. All passwords are stored encrypted.  
 4. On every next start, you must enter the master password to access your data.
+
+
 
 
 

@@ -2,6 +2,7 @@
 #include <wx/wx.h>
 #include <wx/listctrl.h>
 #include <openssl/sha.h>
+#include <wx/clipbrd.h>
 
 // Forward declaration for hashPassword helper
 static std::string hashPassword(const std::string& password);
@@ -35,9 +36,16 @@ MainFrame::MainFrame(const wxString& masterPassword_)
     usernameCtrl = new wxTextCtrl(panel, wxID_ANY, "", wxDefaultPosition, wxSize(300, -1));
     formSizer->Add(usernameCtrl, 0, wxALL, 10);
 
-    formSizer->Add(new wxStaticText(panel, wxID_ANY, "Password:"), 0, wxLEFT, 10);
-    passwordCtrl = new wxTextCtrl(panel, wxID_ANY, "", wxDefaultPosition, wxSize(300, -1));
-    formSizer->Add(passwordCtrl, 0, wxALL, 10);
+    formSizer->Add(new wxStaticText(panel, wxID_ANY, "Password:"), 0, wxLEFT | wxTOP, 10);
+
+    wxBoxSizer* passwordRowSizer = new wxBoxSizer(wxHORIZONTAL);
+    passwordCtrl = new wxTextCtrl(panel, wxID_ANY, "", wxDefaultPosition, wxSize(250, -1), wxTE_PASSWORD);
+    passwordRowSizer->Add(passwordCtrl, 1, wxRIGHT, 5);
+    wxButton* showButton = new wxButton(panel, wxID_ANY, "Show", wxDefaultPosition, wxSize(60, 26));
+    passwordRowSizer->Add(showButton, 0);
+    wxButton* copyButton = new wxButton(panel, wxID_ANY, "Copy", wxDefaultPosition, wxSize(60, 26));
+    passwordRowSizer->Add(copyButton, 0);
+    formSizer->Add(passwordRowSizer, 0, wxALL | wxEXPAND, 10);
 
     formSizer->Add(new wxStaticText(panel, wxID_ANY, "URL:"), 0, wxLEFT, 10);
     urlCtrl = new wxTextCtrl(panel, wxID_ANY, "", wxDefaultPosition, wxSize(300, -1));
@@ -50,6 +58,7 @@ MainFrame::MainFrame(const wxString& masterPassword_)
     // Button Sizer
     wxBoxSizer* buttonSizer = new wxBoxSizer(wxHORIZONTAL);
     saveButton = new wxButton(panel, wxID_ANY, "Save");
+    //saveButton->SetBackgroundColour(wxColour(0,255,0));
     buttonSizer->Add(saveButton, 0, wxALL, 5);
     deleteButton = new wxButton(panel, wxID_ANY, "Delete");
     buttonSizer->Add(deleteButton, 0, wxALL, 5);
@@ -70,6 +79,7 @@ MainFrame::MainFrame(const wxString& masterPassword_)
     saveButton->Bind(wxEVT_BUTTON, &MainFrame::OnSave, this);
     deleteButton->Bind(wxEVT_BUTTON, &MainFrame::OnDelete, this);
     entryList->Bind(wxEVT_LIST_ITEM_SELECTED, &MainFrame::OnEntrySelected, this);
+    copyButton->Bind(wxEVT_BUTTON, &MainFrame::OnCopyPasswordToClipboard, this);
     Centre();
 
     RefreshEntryList();
@@ -80,6 +90,21 @@ void MainFrame::OnExit([[maybe_unused]] wxCommandEvent& event)
     Close(true);
 }
 
+void MainFrame::OnCopyPasswordToClipboard([[maybe_unused]] wxCommandEvent& event)
+{
+    if (wxTheClipboard->Open()) {
+        wxTheClipboard->SetData(new wxTextDataObject(passwordCtrl->GetValue()));
+        wxTheClipboard->Close();
+        SetStatusText("Password copied to Cliboard");
+    }
+}
+
+void MainFrame::OnShowPassword([[maybe_unused]] wxCommandEvent& event)
+{
+    
+}
+
+
 void MainFrame::OnSave([[maybe_unused]] wxCommandEvent& event)
 {
     PwdEntry entry;
@@ -89,13 +114,13 @@ void MainFrame::OnSave([[maybe_unused]] wxCommandEvent& event)
     entry.url = std::string(urlCtrl->GetValue().mb_str());
     entry.notes = std::string(notesCtrl->GetValue().mb_str());
 
-    // Prevent saving if required fields are empty (title or password)
+    // Check required fields
     if (entry.title.empty() || entry.password.empty()) {
         SetStatusText("Title and password must not be empty!");
         return;
     }
 
-    // Set master password if first start
+    // Set master password hash if first run
     if (db.isFirstRun()) {
         std::string hash = hashPassword(std::string(masterPassword.mb_str()));
         if (!db.setMasterPasswordHash(hash)) {
@@ -104,33 +129,30 @@ void MainFrame::OnSave([[maybe_unused]] wxCommandEvent& event)
         }
     }
 
-    // Check if an entry is selected (by matching title+username+url)
-    auto all = db.getAllPasswords();
-    int foundId = -1;
-    for (const auto& e : all) {
-        if (e.title == entry.title && e.username == entry.username && e.url == entry.url) {
-            foundId = e.id;
-            break;
-        }
-    }
     bool ok = false;
-    if (foundId != -1) {
-        entry.id = foundId;
+
+    // Use selectedId to update instead of comparing strings
+    if (selectedId != -1) {
+        entry.id = selectedId;
         ok = db.updatePassword(entry);
         SetStatusText(ok ? "Password entry updated!" : "Failed to update password entry!");
     } else {
         ok = db.addPassword(entry);
         SetStatusText(ok ? "Password entry saved!" : "Failed to save password entry!");
     }
+
     if (ok) {
+        // Clear fields after save
         titleCtrl->SetValue("");
         usernameCtrl->SetValue("");
         passwordCtrl->SetValue("");
         urlCtrl->SetValue("");
         notesCtrl->SetValue("");
+        selectedId = -1;
         RefreshEntryList();
     }
 }
+
 
 void MainFrame::OnDelete([[maybe_unused]] wxCommandEvent& event)
 {
@@ -191,29 +213,44 @@ static std::string hashPassword(const std::string& password) {
 
 bool App::OnInit()
 {
-    wxTextEntryDialog dlg(nullptr, "Enter master password:", "Master Password", "", wxOK | wxCANCEL | wxTE_PASSWORD);
-    if (dlg.ShowModal() != wxID_OK) {
-        return false;
-    }
-    masterPassword = dlg.GetValue();
-    if (masterPassword.IsEmpty()) {
+    // Prompt for master password
+    wxTextEntryDialog dlg1(nullptr, "Enter master password:", "Master Password", "", wxOK | wxCANCEL | wxTE_PASSWORD);
+    if (dlg1.ShowModal() != wxID_OK || dlg1.GetValue().IsEmpty()) {
         wxMessageBox("Master password cannot be empty!", "Error", wxOK | wxICON_ERROR);
         return false;
     }
+    wxString enteredPassword = dlg1.GetValue();
 
-    // check master password
-    PasswordDB db("passwords.db", std::string(masterPassword.mb_str()));
-    std::string hash = hashPassword(std::string(masterPassword.mb_str()));
-    if (!db.isFirstRun()) {
-        if (!db.checkMasterPasswordHash(hash)) {
+    // Check if it's first run
+    PasswordDB tempDB("passwords.db", std::string(enteredPassword.mb_str()));
+    bool firstRun = tempDB.isFirstRun();
+
+    // If first run, confirm password
+    if (firstRun) {
+        wxTextEntryDialog dlg2(nullptr, "Confirm master password:", "Confirm Password", "", wxOK | wxCANCEL | wxTE_PASSWORD);
+        if (dlg2.ShowModal() != wxID_OK || dlg2.GetValue().IsEmpty()) {
+            wxMessageBox("Master password confirmation cancelled or empty!", "Error", wxOK | wxICON_ERROR);
+            return false;
+        }
+        if (dlg2.GetValue() != enteredPassword) {
+            wxMessageBox("Passwords do not match!", "Error", wxOK | wxICON_ERROR);
+            return false;
+        }
+    } else {
+        // Validate password hash
+        std::string hash = hashPassword(std::string(enteredPassword.mb_str()));
+        if (!tempDB.checkMasterPasswordHash(hash)) {
             wxMessageBox("Wrong master password!", "Error", wxOK | wxICON_ERROR);
             return false;
         }
     }
-    
-    MainFrame *frame = new MainFrame(masterPassword);
+
+    masterPassword = enteredPassword;
+
+    MainFrame* frame = new MainFrame(masterPassword);
     frame->Show(true);
     return true;
 }
+
 
 wxIMPLEMENT_APP(App);

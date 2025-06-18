@@ -1,0 +1,5 @@
+compare master pw finished
+update on change
+pw **** copy button finished
+pw toggel visible button not done
+screenshots finished

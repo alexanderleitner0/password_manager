@@ -29,6 +29,8 @@ private:
     void OnEdit(wxCommandEvent& event);
     void OnDelete(wxCommandEvent& event);
     void OnEntrySelected(wxListEvent& event);
+    void OnCopyPasswordToClipboard(wxCommandEvent& event);
+    void OnShowPassword(wxCommandEvent& event);
     void RefreshEntryList();
 };
 
@@ -37,6 +39,7 @@ class App : public wxApp
 public:
     bool OnInit();
     wxString masterPassword;
+    wxString masterPassword_check;
 };
 
 #endif
